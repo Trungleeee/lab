@@ -1,55 +1,77 @@
 import React, { useState, useEffect, useContext } from "react";
 import { AppBar, Toolbar, Typography, Box, Checkbox, FormControlLabel } from "@mui/material";
-import { AdvancedFeaturesContext } from "../../AdvancedFeaturesContext";
 import { useLocation, matchPath } from "react-router-dom";
+import { AdvancedFeaturesContext } from "../../AdvancedFeaturesContext";
 import fetchModel from "../../lib/fetchModelData";
 
 import "./styles.css";
 
-/**
- * Define TopBar, a React component of Project 4.
- */
 function TopBar() {
   const location = useLocation();
-  const [context, setContext] = useState("");
   const { advancedFeaturesEnabled, setAdvancedFeaturesEnabled } = useContext(AdvancedFeaturesContext);
 
-  useEffect(() => {
-    const userDetailMatch = matchPath("/users/:userId", location.pathname);
-    const userPhotosMatch = matchPath("/photos/:userId", location.pathname);
+  const [title, setTitle] = useState("");
 
-    if (userDetailMatch) {
-      fetchModel(`/user/${userDetailMatch.params.userId}`)
-        .then(u => setContext(`${u.first_name} ${u.last_name}`))
-        .catch(console.error);
-    } else if (userPhotosMatch) {
-      fetchModel(`/user/${userPhotosMatch.params.userId}`)
-        .then(u => setContext(`Photos of ${u.first_name} ${u.last_name}`))
-        .catch(console.error);
-    } else {
-      setContext("");
+  // 👉 tách logic ra hàm riêng
+  const loadUserInfo = async (id, isPhotoPage = false) => {
+    try {
+      const user = await fetchModel(`/user/${id}`);
+      const name = `${user.first_name} ${user.last_name}`;
+      setTitle(isPhotoPage ? `Photos of ${name}` : name);
+    } catch (err) {
+      console.error(err);
     }
+  };
+
+  useEffect(() => {
+    const path = location.pathname;
+
+    const matchUser = matchPath("/users/:userId", path);
+    const matchPhoto = matchPath("/photos/:userId", path);
+
+    if (matchUser?.params?.userId) {
+      loadUserInfo(matchUser.params.userId);
+      return;
+    }
+
+    if (matchPhoto?.params?.userId) {
+      loadUserInfo(matchPhoto.params.userId, true);
+      return;
+    }
+
+    setTitle("");
   }, [location.pathname]);
 
   return (
-    <AppBar className="topbar-appBar" position="absolute">
+    <AppBar position="absolute" className="topbar-appBar">
       <Toolbar>
-        <Typography variant="h5" color="inherit">
-          Đào Hoàng Thái B23DCCN741
+        {/* Left */}
+        <Typography variant="h5">
+          Lê Doãn Trung - B23DCCN854
         </Typography>
+
+        {/* Spacer */}
         <Box sx={{ flexGrow: 1 }} />
+
+        {/* Toggle */}
         <FormControlLabel
           control={
             <Checkbox
               checked={advancedFeaturesEnabled}
               onChange={(e) => setAdvancedFeaturesEnabled(e.target.checked)}
-              sx={{ color: "white", "&.Mui-checked": { color: "white" } }}
+              sx={{
+                color: "white",
+                "&.Mui-checked": { color: "white" }
+              }}
             />
           }
-          label={<Typography variant="body2" sx={{ marginRight: 2 }}>Enable Advanced Features</Typography>}
+          label="Enable Advanced Features"
+          sx={{ mr: 2 }}
         />
-        <Typography variant="h5" color="inherit">
-          {context}
+
+        {/* Right */}
+        <Typography variant="h5">
+          {title}
         </Typography>
       </Toolbar>
     </AppBar>
